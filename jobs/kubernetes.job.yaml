@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chuck-job-jean
+  namespace: $NAMESPACE
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: chuck-job-jean
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: chuck-job-jean
+        image: jean1989/k8s-job-test:latest
+        command: ["/var/app/job"]
+        env:
+        - name: SLACK_HOOK
+          value: "${SLACK_HOOK}"

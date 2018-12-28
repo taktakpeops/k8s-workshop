@@ -1,0 +1,13 @@
+FROM node:10-alpine
+
+COPY [ "deployment/package.json", "deployment/package-lock.json", "/var/app/" ]
+
+WORKDIR /var/app
+
+RUN apk --no-cache add ca-certificates && npm i
+
+COPY [ "deployment/src/index.js", "/var/app/" ]
+
+CMD [ "node", "/var/app/index.js" ]
+
+EXPOSE 9001

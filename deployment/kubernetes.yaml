@@ -1,0 +1,109 @@
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chuck-jean
+  namespace: $NAMESPACE
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chuck-jean
+  minReplicas: 3
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageUtilization: 70
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 50
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: chuck-jean
+  namespace: $NAMESPACE
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+spec:
+  tls:
+  - hosts:
+    - chuck-jean.com
+  rules:
+  - host: chuck-jean.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: chuck-jean
+          servicePort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chuck-jean
+  namespace: $NAMESPACE
+  annotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9003'
+    prometheus.io/probe: 'true'
+    prometheus.io/probe-path: '/liveness'
+spec:
+  type: ClusterIP
+  selector:
+    app: chuck-jean
+  ports:
+  - name: chuck-jean
+    protocol: TCP
+    port: 80
+    targetPort: 9001
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: chuck-jean
+  namespace: $NAMESPACE
+spec:
+  replicas: 3 # create 3 replicas of the webserver
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 20%
+      maxUnavailable: 10%
+  template:
+    metadata:
+      labels:
+        app: chuck-jean
+    spec:
+      containers:
+      - name: chuck-jean
+        image: jean1989/k8s-web-server:debug
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 50m
+          limits:
+            memory: 128Mi
+            cpu: 100m
+        ports:
+        - containerPort: 9001
+          name: app
+        env:
+        - name: CHUCK_API
+          value: "https://api.chucknorris.io"
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 9001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 9001
+          periodSeconds: 2
+          failureThreshold: 3
