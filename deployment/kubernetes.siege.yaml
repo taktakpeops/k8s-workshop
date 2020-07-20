@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: chuck-job-siege
+  namespace: $NAMESPACE
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: chuck-job-siege
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: chuck-job-siege
+        image: jean1989/docker-siege:latest
+        command: ["siege", "-c=100", "-t2M", "chuck-jean/chuck"]

@@ -105,3 +105,23 @@ For our workshop, we will create a `Deployment` for a web-server. In the `deploy
 - `gettext` and `envsubst` for *nix OS
 
 ### ToDo
+
+Bake the NodeJS application using the Dockerfile `Dockerfile.server`.
+In your terminal, type the following command line `docker build -f Dockerfile.server -t myDockerUsername/workshop-server:latest .`.
+
+Make sure that your container works then push it to your Docker registry.
+
+In the script, we have two parts. One takes care of creating a server for allowing Prometheus to scrap the metrics from your application. The other one is your application.
+
+The application has two health-check endpoints. In the manifest `kubernetes.yaml`, you can see we use a TCP probe for both `liveness` and `readiness`.
+The health-check allows Kubernetes to determine the status of your application (did it start? Is it ready to receive traffic?). The deployment created by the manifest manages replicas.
+
+The metrics are used for calibrating our horizontal pod autoscaler (hpa). In our manifest, we are setting the thresholds to 70% of memory and 50% of CPU for the hpa. The hpa collects its metrics from the metrics-server by calling the api `/apis/metrics.k8s.io`. Prometheus is used in our case for providing custom metrics to our hpa in later stage.
+
+2 others objects are specified in the manifest: a service (svc) and ingress controller (ing). The svc uses a private IP address (ClusterIP) and is used a load-balancer for reaching the different pods deployed by our manifest. The ing get a public IP and route the traffic to our svc based on what we specified in the paths property. In addition, you can customise the behaviour of NGinx by adding annotations to your ing manifest. The whole list of annotations can be found [here](https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md)
+
+Before applying the manifest to your cluster, make sure that you defined the right DNS in the ing manifest.
+
+Now that it's deployed, you should be able to see a joke from chuck while doing a `GET mynds.ltd/chuck`.
+
+In order to see how the hpa works, you can use the manifest `kubernetes.siege.yaml` to stress your application and trigger an upscale.

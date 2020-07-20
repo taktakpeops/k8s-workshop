@@ -1,3 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $NAMESPACE
+---
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
@@ -5,7 +10,7 @@ metadata:
   namespace: $NAMESPACE
 spec:
   scaleTargetRef:
-    apiVersion: apps/v1
+    apiVersion: apps/v1beta1
     kind: Deployment
     name: chuck-jean
   minReplicas: 3
@@ -14,7 +19,7 @@ spec:
   - type: Resource
     resource:
       name: memory
-      targetAverageUtilization: 70
+      targetAverageUtilization: 50
   - type: Resource
     resource:
       name: cpu
@@ -28,9 +33,6 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: 'false'
 spec:
-  tls:
-  - hosts:
-    - chuck-jean.com
   rules:
   - host: chuck-jean.com
     http:
@@ -50,6 +52,7 @@ metadata:
     prometheus.io/port: '9003'
     prometheus.io/probe: 'true'
     prometheus.io/probe-path: '/liveness'
+    prometheus.io/path: '/metrics'
 spec:
   type: ClusterIP
   selector:
@@ -91,6 +94,8 @@ spec:
         ports:
         - containerPort: 9001
           name: app
+        - containerPort: 9003
+          name: metrics
         env:
         - name: CHUCK_API
           value: "https://api.chucknorris.io"
